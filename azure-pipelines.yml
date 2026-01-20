@@ -1,0 +1,55 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- master
+
+pool:
+  vmImage: ubuntu-latest
+
+parameters:
+- name: action
+  type: string
+  default: 'apply'  # Default value added
+  values:
+  - apply
+  - destroy
+
+steps:
+- task: TerraformTaskV4@4
+  inputs:
+    provider: 'azurerm'
+    command: 'init'
+    backendServiceArm: 'ProjectHIS'
+    backendAzureRmResourceGroupName: 'Remotestorage'
+    backendAzureRmStorageAccountName: 'storageremote'
+    backendAzureRmContainerName: 'remotecontainer'
+    backendAzureRmKey: 'terraform.tfstate'
+
+- task: TerraformTaskV4@4
+  inputs:
+    provider: 'azurerm'
+    command: 'validate'
+
+- task: TerraformTaskV4@4
+  inputs:
+    provider: 'azurerm'
+    command: 'plan'
+    environmentServiceNameAzureRM: 'ProjectHIS'
+
+- ${{ if eq(parameters.action, 'apply') }}:
+  - task: TerraformTaskV4@4
+    inputs:
+      provider: 'azurerm'
+      command: 'apply'
+      environmentServiceNameAzureRM: 'ProjectHIS'
+
+- ${{ if eq(parameters.action, 'destroy') }}:
+  - task: TerraformTaskV4@4
+    inputs:
+      provider: 'azurerm'
+      command: 'destroy'
+      environmentServiceNameAzureRM: 'ProjectHIS'
+
